@@ -3,6 +3,12 @@ import pandas as pd
 import easyocr
 import cv2
 
+import ssl
+import os
+
+# 禁用全局 SSL 验证
+ssl._create_default_https_context = ssl._create_unverified_context
+
 # EasyOCR reader initialization
 reader = easyocr.Reader(['en', 'ch_sim'], gpu=False)
 

@@ -4,7 +4,9 @@ import platform
 import sys
 from pathlib import Path
 
+import numpy
 import torch
+torch.serialization.add_safe_globals([numpy._core.multiarray._reconstruct])
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLO root directory

@@ -8,7 +8,7 @@ from nets.resnet import resnet34
 from PIL import Image
 
 # Set model path and batch size
-MODEL_PATH = './logs/Epoch100-Total_Loss0.0031.pth'  # Modify to your trained model path
+MODEL_PATH = './logs/Epoch82-Total_Loss0.0004.pth'  # Modify to your trained model path
 Batch_Size = 1  # Number of images to predict at a time
 
 # Define data transformations (consistent with training)

@@ -101,7 +101,9 @@ elif functionality == "Detection":
                 "--img", "640",
                 "--conf", "0.5",
                 "--device", "cpu",
+                #
                 "--weights", "runs/train/exp/weights/best.pt",
+                #"--weights", "Receipt_classificaion_model-main/runs/train/exp/best.pt",
                 "--source", detection_folder,
                 "--save-txt", "--save-conf"
             ]
@@ -147,7 +149,7 @@ elif functionality == "OCR":
         command = [
             "python", "OCR.py",
             "--input_folder", detection_folder,
-            "--image_dir", "./data/corrected_images",
+            "--image_dir", "./data/test/images",
             "--output_csv", "ocr_results"  # Base name for the output CSV
         ]
 
