@@ -19,8 +19,20 @@ class BaseEmbeddings:
         self.is_api = is_api
     
     def get_embedding(self, text: str, model: str) -> List[float]:
+        #raise NotImplementedError
+        """
+                将输入文本转换为向量（embedding）。
+                参数:
+                    text: 输入的文本字符串
+                    model: 使用的模型名称（比如 openai / zhipu 等）
+                返回:
+                    一个向量（list of float），表示文本的语义
+                注意:
+                    这里没有实现具体逻辑，必须在子类中重写
+        """
         raise NotImplementedError
-    
+
+    # 这个函数属于“类”，不是“对象”
     @classmethod
     def cosine_similarity(cls, vector1: List[float], vector2: List[float]) -> float:
         """

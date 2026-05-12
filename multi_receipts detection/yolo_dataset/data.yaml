@@ -1,0 +1,9 @@
+path: /content/yolov8_dataset
+train: images/train
+val: images/val
+names:
+  0: receipt
+kpt_shape:
+- 4
+- 3
+flip_idx: []

@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['Date', 'Pay', 'Shopname', 'Telnum']
+
+roboflow:
+  workspace: ras-workspace-uhnsw
+  project: receipt_detection-27jja
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ras-workspace-uhnsw/receipt_detection-27jja/dataset/3
