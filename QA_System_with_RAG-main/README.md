@@ -16,9 +16,9 @@
 
 ### 実行結果
 
-![image-20260514221839027](/Users/baiwenbin/Library/Application Support/typora-user-images/image-20260514221839027.png)
+![結果1](images/result1.png)
 
-![image-20260514221948118](/Users/baiwenbin/Library/Application Support/typora-user-images/image-20260514221948118.png)
+![結果2](images/result2.png)
 
 ---
 
