@@ -1,250 +1,148 @@
-# RAG技術を利用してローカルマニュアルのQAシステムを構築する
+# RAG技術を利用したローカルマニュアルQAシステム
 
+## 概要
 
-## Summary
+本プロジェクトは、RAG（検索拡張生成）技術を用いて、ローカルに保存したマニュアルやドキュメントに対して自然言語で質問できるQAシステムです。埋め込みモデルに ZhipuAI API、回答生成にはコストパフォーマンスに優れた DeepSeek API を使用しています。Streamlit による Web UI を備え、ブラウザ上で直感的に操作できます。
 
-<div style="max-width: 600px; word-wrap: break-word;">
+![RAG構造](images/Rag_strucutre.png)
 
-本プロジェクトでは、ZhipuAI が提供する ChatGLM モデル（無料でAPIを使用可能です） を使用して、ローカルの取扱説明書を基にしたQAシステムを構築しました。このシステムは、ユーザーが説明書に基づいて質問を入力すると、RAG技術を活用して関連情報を検索し、適切な回答を生成します。
+### Web UI の主な機能
 
-例えば、以下のような質問と回答が生成されます：
+- **チャット形式の対話**：質問を入力すると、RAG が関連文書を検索し、DeepSeek が回答をストリーミング表示します。会話履歴はセッション中保持されます。
+- **回答スタイル選択**：概要レポート・学習ガイド・ブログ記事・カスタム形式の4種から選択。スタイルごとに専用のプロンプトテンプレートが適用されます。カスタム形式では任意の指示を自由に入力可能です。
+- **回答の長さ設定**：200 / 400 / 800 トークンから選択。`max_tokens` パラメータに反映されます。
+- **検索結果の可視化**：Top-K チャンクを展開表示し、出典ファイル名・類似度スコア（コサイン類似度）・キーワードハイライトを確認できます。
+- **ナレッジベース管理**：`data/` に `.md` / `.txt` / `.pdf` を置くだけで、起動時に自動ベクトル化されます。
 
-**質問1**: マイクロプレート用スタッカーシステムのプレート搬送時間は何ですか  
-**回答1**: マイクロプレート用スタッカーシステムのプレート搬送時間はおよそ8秒です。これは「コンパクト設計プレート搬送時間およそ8秒の高速ロボット2、4、6本スタッカーの3タイプモデル」と記載されています。
+### 実行結果
 
-**質問2**: ロボット対応サーマルシール方式マイクロプレートシーラーは一枚プレートは何秒をかかりますか  
-**回答2**: 1枚あたり8秒の高速シーリングを行います。
+![image-20260514221839027](/Users/baiwenbin/Library/Application Support/typora-user-images/image-20260514221839027.png)
 
-**質問3**: マルチチャンネル自動分注機（96 / 384ヘッド）の精度は何ですか  
-**回答3**: マルチチャンネル自動分注機（96 / 384ヘッド）の精度は、0.3–250µLの範囲でCVが5%以下の高精度分注が可能です。
+![image-20260514221948118](/Users/baiwenbin/Library/Application Support/typora-user-images/image-20260514221948118.png)
 
+---
 
+## 使い方
 
+### 1. 環境構築
 
-## 1. RAGについて
-
-<div style="max-width: 600px; word-wrap: break-word;">
-
-RAG（Retrieval-Augmented Generation、検索拡張生成）は、検索エンジンや情報検索技術を統合した生成型AIの一種です。大規模言語モデル（LLM）と外部知識ベースを組み合わせて、質問に対するより正確で最新の回答を生成する仕組みを提供します。以下に、RAGの基本的な概念を説明します：
-
-
-
-
-### 1.1 RAGの仕組み
-
-<div style="max-width: 600px; word-wrap: break-word;">
-
-RAGは主に以下の3つのステップで構成されます：
-1. Retrieve（検索）:
-   ユーザーの質問（Query）を基に、知識ベースや外部データベース（例：ドキュメント、Webデータなど）から関連情報を検索します。例えば、ベクトルデータベースを使用して質問に関連する情報を高速で取得します。
-
-2. Augment（補完・拡張）:
-  • 検索結果をもとにコンテキスト情報を生成します。
-  • 検索したデータをプロンプトとして言語モデルに渡すことで、回答生成に必要な情報を補完します。
-
-3. Generate（生成）:
-  • 言語モデル（例：GPT、BERTなど）が検索データを利用して最終的な回答を生成します。
-  • 外部データベースから得た情報を活用することで、モデルが学習していない新しい情報を含めた回答が可能になります。
-
-  
-
-### 1.2 RAGの流れ
-
-<div align="left">
-    <img src="images/RAG_workflow.png" alt="RAG" width="70%">
-</div>
-Image from https://blog-ja.allganize.ai/allganize_rag-1/
-
-
-
-### 1.3 この実践例のRAG構造
-
-![alt text](images/Rag_strucutre.png)
-
-
-## 2. Prepare
-
-### 2.1 必要なパッケージをインストールする Python 3.10 以上に必要です。
+Python 3.10 以上が必要です。依存パッケージをインストールしてください。
 
 ```bash
 pip install -r requirements.txt
 ```
 
-###  2.2 APIキーの取得
+### 2. APIキーの取得
 
-本プロジェクトでは、埋め込み用に ZhipuAI API、LLM回答生成用に DeepSeek API を使用しています。DeepSeek APIはコストパフォーマンスに優れており、高い回答能力を持ちながら低価格で利用できます。各公式サイトでアカウント登録後、APIキーを取得し、`.env` ファイルに以下のように設定してください。
+本プロジェクトでは、埋め込み用に **ZhipuAI API**、LLM回答生成用に **DeepSeek API** を使用しています。DeepSeek は高い回答力と低価格を両立しており、コストパフォーマンスに優れています。各公式サイトでアカウント登録後、APIキーを取得し、`.env` に設定してください。
 
 ```
 ZHIPUAI_API_KEY='あなたのZhipuAI APIキー'
 DEEPSEEK_API_KEY='あなたのDeepSeek APIキー'
 ```
 
-<div align="left">
-    <img src="images/ZHIPUAI.png" alt="RAG" width="70%">
-</div>
+### 3. データの準備
 
-###  2.3 自分のデータを準備して、data/ディレクトリに配置してください。
+`data/` ディレクトリに質問対象の `.md` / `.txt` / `.pdf` ファイルを配置してください。
 
-<div align="left">
-    <img src="images/Localdata.png" alt="RAG" width="70%">
-</div>
+![データ配置](images/Localdata.png)
 
-
-## 3 実行
-
-### 3.1 必要なパッケージをimport
-
-```python
-from RAG.VectorBase import VectorStore
-from RAG.utils import ReadFiles
-from RAG.LLM import OpenAIChat
-```
-
-### 2.ベクター作成プロセス
-
-```
-# ドキュメントを読み込んで分割します
-docs = ReadFiles('./data').get_content(max_token_len=600, cover_content=150)
-
-# ベクターストアを初期化します
-vector = VectorStore(docs)
-
-# 埋め込みモデルを作成します
-embedding = ZhipuEmbedding()
-
-# 各ドキュメントをベクトル化します
-vector.get_vector(EmbeddingModel=embedding)
-
-# ベクトルとドキュメントをローカルストレージに保存します
-vector.persist(path='storage')
-```
-
-### 3. LLMコール ZhipuAIChatを使います。
-
-```
-# ベクターストアを再初期化します
-vector = VectorStore()
-
-#ローカルに保存されたデータを読み込みます
-vector.load_vector('./storage')
-
-# 埋め込みモデルを再初期化します
-embedding = ZhipuEmbedding()
-
-# 質問内容を設定します　(例)
-question = 'マルチチャンネル自動分注機（96 / 384ヘッド）の精度は何ですか'
-
-# ベクターストアを使って最も関連性の高い文書を取得します
-content = vector.query(question, EmbeddingModel=embedding, k=1)[0]
-
-# LLM モデルを初期化します
-chat = ZhipuAIChat(model='chatglm_lite')
-
-# 質問に基づく回答を生成します
-print(chat.chat(question, [], content))
-```
-
-### 4. 結果(例)
-
-<div align="left">
-    <img src="images/result_example.png" alt="result" width="70%">
-</div>
-
-
-
-
-## Streamlit Webアプリケーション
-
-本プロジェクトでは、`app.py` により Streamlit ベースの Web UI を提供しています。以下のコマンドで起動できます：
+### 4. 起動
 
 ```bash
 streamlit run app.py --server.port 8502
 ```
 
-### 主な機能
+ブラウザで `http://localhost:8502` を開くと、チャット画面が表示されます。サイドバーからスタイルや長さを設定し、質問を入力してください。
 
-#### 会話インターフェース
+---
 
-チャット形式で質問を入力し、RAG による回答をリアルタイムでストリーミング表示します。会話履歴はセッション中保持され、連続した質疑応答が可能です。
+## RAGの仕組み
 
-#### LLMモデル選択
+RAG（Retrieval-Augmented Generation）は、以下の3ステップで動作します。
 
-サイドバーから DeepSeek-V4 / DeepSeek-Flash を切り替え可能です。DeepSeek API を使用して高品質な回答を生成します。
+1. **Retrieve（検索）**：ユーザーの質問をベクトル化し、知識ベース内の文書断片（チャンク）からコサイン類似度で最も関連性の高いものを Top-K 件取得します。
+2. **Augment（拡張）**：検索結果をコンテキストとしてプロンプトに埋め込み、LLM に渡します。
+3. **Generate（生成）**：LLM がコンテキストを参照しながら回答を生成します。モデルが直接学習していない情報にも対応可能です。
 
-#### 回答スタイル設定
+![RAGワークフロー](images/RAG_workflow.png)
+*Image from https://blog-ja.allganize.ai/allganize_rag-1/*
 
-サイドバーから概要レポート・学習ガイド・ブログ記事・カスタム形式の4つの回答スタイルを選択でき、各スタイルに応じた専用プロンプトで回答を生成します。
+---
 
-#### 回答の長さ設定
+## コード実行例
 
-200 / 400 / 800 トークンから回答の長さを選択できます。選択値は LLM の `max_tokens` パラメータに反映されます。
+Python スクリプトから直接 RAG を利用する場合の流れです。
 
-#### 検索結果の可視化
+```python
+from RAG.VectorBase import VectorStore
+from RAG.utils import ReadFiles
+from RAG.Embeddings import ZhipuEmbedding
+from RAG.LLM import ZhipuAIChat
 
-検索された Top-K チャンクは展開可能なエリアに表示され、以下の情報を含みます：
+# ドキュメントを読み込み、分割
+docs, sources = ReadFiles('./data').get_content(max_token_len=600, cover_content=150)
 
-- **出典ファイル名**：チャンクがどのドキュメントから取得されたか
-- **類似度スコア**：コサイン類似度（0〜1、高いほど質問と関連）
-- **キーワードハイライト**：質問文中のキーワードがチャンク内で赤く強調表示
-- **HTMLタグ除去**：Markdown/HTML 由来のタグを適切に除去し、クリーンなテキストで表示
+# ベクトル化して保存
+vector = VectorStore(docs, sources)
+vector.get_vector(EmbeddingModel=ZhipuEmbedding())
+vector.persist(path='storage')
 
-#### ナレッジベース管理
+# 保存済みベクトルを読み込み、質問に回答
+vector = VectorStore()
+vector.load_vector('./storage')
 
-サイドバーに現在読み込まれているドキュメント一覧が表示されます。`data/` ディレクトリに `.md` / `.txt` / `.pdf` ファイルを追加すると、アプリ起動時に自動でベクトル化されます。
+question = 'マルチチャンネル自動分注機の精度は？'
+content = vector.query(question, EmbeddingModel=ZhipuEmbedding(), k=1)
 
+chat = ZhipuAIChat(model='chatglm_lite')
+print(chat.chat(question, [], content[0]['text']))
+```
+
+
+
+---
 
 ## 実装の詳細
 
-### ベクトル化
+### ベクトル化（Embeddings）
 
-この部分では、`zhipu`、`jina`、および `openai` の3つのベクトル化手法を使用しています。具体的な実装方法については、`Embedding` モジュール内で確認できます。
-
-他のベクトルモデルを使用したい場合は、`BaseEmbeddings` クラスを継承し、`get_embedding` メソッドを実装してください。
-
+`zhipu` / `jina` / `openai` の3種類の埋め込みモデルに対応。他のモデルを追加する場合は `BaseEmbeddings` を継承して `get_embedding()` を実装してください。
 
 ```python
 class BaseEmbeddings:
-    """
-    Base class for embeddings
-    """
     def __init__(self, path: str, is_api: bool) -> None:
         self.path = path
         self.is_api = is_api
-    
+
     def get_embedding(self, text: str, model: str) -> List[float]:
         raise NotImplementedError
-    
+
     @classmethod
-    def cosine_similarity(cls, vector1: List[float], vector2: List[float]) -> float:
-        """
-        calculate cosine similarity between two vectors
-        """
+    def cosine_similarity(cls, vector1, vector2) -> float:
         dot_product = np.dot(vector1, vector2)
         magnitude = np.linalg.norm(vector1) * np.linalg.norm(vector2)
-        if not magnitude:
-            return 0
-        return dot_product / magnitude
+        return 0 if not magnitude else dot_product / magnitude
 ```
 
-### ベクトル検索
+### ベクトル検索（VectorBase）
 
-ここでは成熟したデータベースを使用せず、文書を分割した断片と対応するベクトルを単純に Json に保存しています。実装方法は VectorBase モジュール内で確認できます。
-
-ベクトル検索では、Numpy のみを使用して高速化しています。コードは非常に理解しやすく、変更も容易です。
+文書断片とベクトルを JSON でローカル保存し、Numpy でコサイン類似度を計算。軽量で理解しやすい実装です。
 
 ```python
-def query(self, query: str, EmbeddingModel: BaseEmbeddings, k: int = 1) -> List[str]:
+def query(self, query, EmbeddingModel, k=1):
     query_vector = EmbeddingModel.get_embedding(query)
-    result = np.array([self.get_similarity(query_vector, vector)
-                        for vector in self.vectors])
-    return np.array(self.document)[result.argsort()[-k:][::-1]]
+    scores = np.array([self.get_similarity(query_vector, v) for v in self.vectors])
+    top_indices = scores.argsort()[-k:][::-1]
+    return [{"text": self.document[i], "score": float(scores[i]), "source": self.sources[i]}
+            for i in top_indices]
 ```
 
-> 本実装は生産環境での利用を考慮しておらず、学習目的のみに使用してください。
+> 本実装は学習目的です。本番環境では専用のベクトルデータベース（Chroma、Pinecone 等）の使用を推奨します。
 
-### LLM 模型
+### LLM モデル
 
-ここでは openai モデル、InternLM2 モデルと　ZHIPUAIモデル をサポートしています。他のモデルを使用したい場合は、LLM モジュール内の以下の基底クラスを継承し、必要に応じて改良してください。
+OpenAI / InternLM2 / ZhipuAI / DeepSeek に対応。他のモデルを追加する場合は `BaseModel` を継承してください。
 
 ```python
 class BaseModel:
@@ -258,15 +156,18 @@ class BaseModel:
         pass
 ```
 
+---
 
 ## Reference
 
-<details><summary> <b>Expand</b> </summary>
+<details><summary>Expand</summary>
 
-| Name                                                         | Link                                      |
-| ------------------------------------------------------------ | ----------------------------------------- |
-| Hand-on-RAG  | (https://github.com/SmartFlowAI/Hand-on-RAG)  |
-| When Large Language Models Meet Vector Databases: A Survey   | [paper](http://arxiv.org/abs/2402.01763)  |
-| Retrieval-Augmented Generation for Large Language Models: A Survey | [paper](https://arxiv.org/abs/2312.10997) |
-| Learning to Filter Context for Retrieval-Augmented Generation | [paper](http://arxiv.org/abs/2311.08377)  |
-| In-Context Retrieval-Augmented Language Models               | [paper](https://arxiv.org/abs/2302.00083) |
+| Name | Link |
+|------|------|
+| Hand-on-RAG | https://github.com/SmartFlowAI/Hand-on-RAG |
+| When Large Language Models Meet Vector Databases: A Survey | http://arxiv.org/abs/2402.01763 |
+| Retrieval-Augmented Generation for Large Language Models: A Survey | https://arxiv.org/abs/2312.10997 |
+| Learning to Filter Context for Retrieval-Augmented Generation | http://arxiv.org/abs/2311.08377 |
+| In-Context Retrieval-Augmented Language Models | https://arxiv.org/abs/2302.00083 |
+
+</details>
