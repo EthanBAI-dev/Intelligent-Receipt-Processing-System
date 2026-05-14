@@ -24,6 +24,55 @@ PROMPT_TEMPLATE = dict(
         有用な回答:"""
 )
 
+STYLE_PROMPTS = {
+    "概要レポート": """以下のコンテキストを使用して、ユーザーの質問に答えてください。答えがわからない場合は、「わかりません」と答えてください。常に日本語で回答してください。
+        質問: {question}
+        参考可能なコンテキスト：
+        ···
+        {context}
+        ···
+        
+        【回答形式】概要レポート
+        以下の要件に従って回答してください：
+        - ソースから重要な分析インサイトと主要な引用を要約すること
+        - 構造を明確にし、見出しを使ってポイントを整理すること
+        - 箇条書きを活用し、素早く読める形式にすること
+        - 各セクションの最後に簡潔な要約を添えること
+        与えられたコンテキストで回答できない場合は、「データベースにこの内容は存在しないため、わかりません」と回答してください。
+        有用な回答:""",
+
+    "学習ガイド": """以下のコンテキストを使用して、ユーザーの質問に答えてください。答えがわからない場合は、「わかりません」と答えてください。常に日本語で回答してください。
+        質問: {question}
+        参考可能なコンテキスト：
+        ···
+        {context}
+        ···
+        
+        【回答形式】学習ガイド
+        以下の要素を必ず含めて、体系的な学習資料として回答してください：
+        1. 簡答問題クイズ（3〜5問、各問に解答と解説を付けること）
+        2. 推奨される論文の質問または探究テーマ（2〜3つ）
+        3. 重要用語の用語集（5〜10語、各用語に簡潔な定義を付けること）
+        与えられたコンテキストで回答できない場合は、「データベースにこの内容は存在しないため、わかりません」と回答してください。
+        有用な回答:""",
+
+    "ブログ記事": """以下のコンテキストを使用して、ユーザーの質問に答えてください。答えがわからない場合は、「わかりません」と答えてください。常に日本語で回答してください。
+        質問: {question}
+        参考可能なコンテキスト：
+        ···
+        {context}
+        ···
+        
+        【回答形式】ブログ記事
+        以下のスタイルで回答してください：
+        - 重要なポイントを文章にまとめ、わかりやすく親しみやすい文体で書くこと
+        - 専門用語は噛み砕いて説明し、一般読者にも理解できるようにすること
+        - 導入・本文・まとめの構成で、読み物としての完成度を高めること
+        - 適宜、比喩や具体例を用いて内容を身近に感じさせること
+        与えられたコンテキストで回答できない場合は、「データベースにこの内容は存在しないため、わかりません」と回答してください。
+        有用な回答:""",
+}
+
 class BaseModel:
     def __init__(self, path: str = '') -> None:
         self.path = path
@@ -101,21 +150,24 @@ class ZhipuAIChat(BaseModel):
             print(f"ZhipuAI Error: {e}")
             return "ZHIPUAI API の呼び出しに失敗しました。設定を確認してください。"
 
-    def chat_stream(self, prompt: str, history: List[dict], content: str, style_instruction: str = ""):
+    def chat_stream(self, prompt: str, history: List[dict], content: str, style: str = "カスタム形式", custom_instruction: str = "", max_tokens: int = 800):
         from zhipuai import ZhipuAI
 
         client = ZhipuAI(api_key=self.api_key)
 
-        full_prompt = PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=prompt, context=content)
-        if style_instruction:
-            full_prompt += f"\n\n【回答スタイル指示】\n{style_instruction}"
+        if style in STYLE_PROMPTS:
+            full_prompt = STYLE_PROMPTS[style].format(question=prompt, context=content)
+        else:
+            full_prompt = PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=prompt, context=content)
+            if custom_instruction:
+                full_prompt += f"\n\n【カスタム指示】\n{custom_instruction}"
 
         try:
             response = client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": full_prompt}],
                 temperature=0.1,
-                max_tokens=800,
+                max_tokens=max_tokens,
                 stream=True
             )
             for chunk in response:
@@ -160,21 +212,24 @@ class DeepSeekAIChat(BaseModel):
             print(f"DeepSeek Error: {e}")
             return "DeepSeek API の呼び出しに失敗しました。"
 
-    def chat_stream(self, prompt: str, history: List[dict], content: str, style_instruction: str = ""):
+    def chat_stream(self, prompt: str, history: List[dict], content: str, style: str = "カスタム形式", custom_instruction: str = "", max_tokens: int = 800):
         from openai import OpenAI
 
         client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
 
-        full_prompt = PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=prompt, context=content)
-        if style_instruction:
-            full_prompt += f"\n\n【回答スタイル指示】\n{style_instruction}"
+        if style in STYLE_PROMPTS:
+            full_prompt = STYLE_PROMPTS[style].format(question=prompt, context=content)
+        else:
+            full_prompt = PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=prompt, context=content)
+            if custom_instruction:
+                full_prompt += f"\n\n【カスタム指示】\n{custom_instruction}"
 
         try:
             response = client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": full_prompt}],
                 temperature=0.1,
-                max_tokens=800,
+                max_tokens=max_tokens,
                 stream=True
             )
             for chunk in response:

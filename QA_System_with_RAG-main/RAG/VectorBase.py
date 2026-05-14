@@ -29,12 +29,14 @@ from tqdm import tqdm
 
 
 class VectorStore:
-    def __init__(self, document: List[str] = ['']) -> None:
+    def __init__(self, document: List[str] = [''], sources: List[str] = None) -> None:
         """
         初始化向量数据库。
         :param document: 待处理的文档列表（字符串数组）。
+        :param sources: 各チャンクの出典ファイル名（documentと同長）。
         """
         self.document = document
+        self.sources = sources if sources else [''] * len(document)
 
     def get_vector(self, EmbeddingModel: BaseEmbeddings) -> List[List[float]]:
         """
@@ -50,15 +52,15 @@ class VectorStore:
         """
         将文档数据和对应的向量数据持久化保存到本地 JSON 文件中。
         """
-        # 如果指定的保存目录不存在，则创建它
         if not os.path.exists(path):
             os.makedirs(path)
 
-        # 1. 保存原始文档内容
         with open(f"{path}/documents.json", 'w', encoding='utf-8') as f:
             json.dump(self.document, f, ensure_ascii=False)
 
-        # 2. 如果向量已经生成，则将其保存为 vectors.json
+        with open(f"{path}/sources.json", 'w', encoding='utf-8') as f:
+            json.dump(self.sources, f, ensure_ascii=False)
+
         if self.vectors:
             with open(f"{path}/vectors.json", 'w', encoding='utf-8') as f:
                 json.dump(self.vectors, f)
@@ -74,20 +76,22 @@ class VectorStore:
         with open(vectors_path, 'r', encoding='utf-8') as f:
             self.vectors = json.load(f)
 
-        doc_path_new = f"{path}/documents.json"
-        doc_path_old = f"{path}/doecment.json"
-        if os.path.exists(doc_path_new):
-            doc_path = doc_path_new
-        elif os.path.exists(doc_path_old):
-            doc_path = doc_path_old
-        else:
+        doc_path = f"{path}/documents.json"
+        if not os.path.exists(doc_path):
             raise FileNotFoundError(
-                f"文書ファイルが見つかりません: {doc_path_new}\n"
+                f"文書ファイルが見つかりません: {doc_path}\n"
                 f"最初にデータをベクトル化して保存してください。"
             )
 
         with open(doc_path, 'r', encoding='utf-8') as f:
             self.document = json.load(f)
+
+        sources_path = f"{path}/sources.json"
+        if os.path.exists(sources_path):
+            with open(sources_path, 'r', encoding='utf-8') as f:
+                self.sources = json.load(f)
+        else:
+            self.sources = [''] * len(self.document)
 
     def get_similarity(self, vector1: List[float], vector2: List[float]) -> float:
         """
@@ -95,20 +99,26 @@ class VectorStore:
         """
         return BaseEmbeddings.cosine_similarity(vector1, vector2)
 
-    def query(self, query: str, EmbeddingModel: BaseEmbeddings, k: int = 1) -> List[str]:
+    def query(self, query: str, EmbeddingModel: BaseEmbeddings, k: int = 1) -> List[Dict]:
         """
         检索与用户提问最相关的文档。
         :param query: 用户输入的提问字符串。
         :param EmbeddingModel: 用于将提问转化为向量的嵌入模型。
         :param k: 需要返回的最相关文档的数量 (Top-K)。
+        :return: List[Dict] 各要素に text, score, source を含む
         """
-        # 1. 将用户的提问文本转化为向量
         query_vector = EmbeddingModel.get_embedding(query)
 
-        # 2. 遍历库中所有向量，计算提问向量与库中每个向量的相似度得分
-        result = np.array([self.get_similarity(query_vector, vector)
+        scores = np.array([self.get_similarity(query_vector, vector)
                            for vector in self.vectors])
 
-        # 3. 对相似度得分进行排序，提取得分最高的倒数前 k 个索引 (argsort 是从小到大排)
-        #    [::-1] 用于将结果反转，使其按照从大到小（最相关到次相关）的顺序排列
-        return np.array(self.document)[result.argsort()[-k:][::-1]].tolist()
+        top_indices = scores.argsort()[-k:][::-1]
+
+        results = []
+        for idx in top_indices:
+            results.append({
+                "text": self.document[idx],
+                "score": float(scores[idx]),
+                "source": self.sources[idx] if idx < len(self.sources) else "",
+            })
+        return results

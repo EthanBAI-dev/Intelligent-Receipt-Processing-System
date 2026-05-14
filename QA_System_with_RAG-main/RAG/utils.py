@@ -36,12 +36,15 @@ class ReadFiles:
 
     def get_content(self, max_token_len: int = 600, cover_content: int = 150):
         docs = []
+        sources = []
         for file in self.file_list:
             content = self.read_file_content(file)
             chunk_content = self.get_chunk(
                 content, max_token_len=max_token_len, cover_content=cover_content)
             docs.extend(chunk_content)
-        return docs
+            file_name = os.path.basename(file)
+            sources.extend([file_name] * len(chunk_content))
+        return docs, sources
 
     @classmethod
     def get_chunk(cls, text: str, max_token_len: int = 600, cover_content: int = 150):
