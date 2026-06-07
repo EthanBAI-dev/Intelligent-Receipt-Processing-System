@@ -1,0 +1,11 @@
+path: /Users/baiwenbin/Documents/MyProjects/DeepLearning Project/work/multi_receipts
+  detection/v3_yolov8_detect_corners/train/yolo_dataset
+train: images/train
+val: images/val
+nc: 5
+names:
+- receipt
+- corner_tl
+- corner_tr
+- corner_br
+- corner_bl

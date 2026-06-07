@@ -1,0 +1,3 @@
+# YOLOv5 text detection classes
+nc: 4
+names: ['date', 'store', 'phone', 'total']
