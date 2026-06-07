@@ -1,0 +1,83 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-VSCode
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+*.egg
+*.manifest
+*.spec
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+
+# Model weights (ONNX/engine formats - binary exports)
+*.onnx
+*.engine
+*.pkl
+
+# Model weights (exceeds GitHub 100MB limit)
+**/best_text.pt
+
+# Development back up
+back up/
+
+# Model training outputs
+runs/
+logs/
+map_out/
+miou_out/
+VOCdevkit/
+datasets/
+Medical_Datasets/
+lfw/
+model_data/
+.temp_map_out/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
