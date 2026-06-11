@@ -5,6 +5,10 @@
 YOLOv8、YOLOv5、ResNet34、PaddleOCR によるマルチレシート検出・分類・文字領域検出・OCR認識パイプライン。
 Streamlit による直感的なWeb UI を提供します。
 
+## デモ
+
+![OCR Pipeline Demo](receipt%20detection.gif)
+
 ---
 
 ## システムアーキテクチャ

@@ -5,6 +5,10 @@
 基于YOLOv8、YOLOv5、ResNet34、PaddleOCR的多收据检测·分类·文字区域检测·OCR识别流水线。
 使用Streamlit构建直观的Web界面。
 
+## 演示
+
+![OCR Pipeline Demo](receipt%20detection.gif)
+
 ---
 
 ## 系统架构

@@ -17,6 +17,8 @@
 3. **Text Region Detection** — YOLOv5/YOLOv9 detects 4 classes: date, store name, phone number, total amount
 4. **OCR Recognition & CSV Output** — PaddleOCR (PP-OCRv5) recognizes text in each region, post-processes and exports to structured CSV
 
+![OCR Pipeline Demo](receipt%20detection.gif)
+
 ### System Architecture
 
 ```
@@ -52,16 +54,6 @@
 3. **Step 2 — Orientation Correction**: ResNet34 classifier determines receipt orientation, rotates to upright (0°)
 4. **Step 3 — Text Region Detection**: YOLOv5/YOLOv9 detects date, store name, phone number, and total amount regions
 5. **Step 4 — OCR Recognition**: PaddleOCR recognizes text in each region, post-processes and exports to CSV
-
----
-
-## Results
-
-> *(Images to be added later)*
-
-<!--
-![System Overview Result](images/overview_result.png)
--->
 
 ---
 

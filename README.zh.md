@@ -17,6 +17,8 @@
 3. **文字区域检测** — 使用 YOLOv5/YOLOv9 检测日期、店名、电话号码、合计金额 4 类文字区域
 4. **OCR 识别 & CSV 输出** — 使用 PaddleOCR（PP-OCRv5）识别各区域文本，经后处理输出结构化 CSV
 
+![OCR Pipeline Demo](receipt%20detection.gif)
+
 ### 系统架构
 
 ```
@@ -52,16 +54,6 @@
 3. **Step 2 — 方向矫正**: ResNet34 分类器判断收据方向，旋转至正向（0°）
 4. **Step 3 — 文字区域检测**: YOLOv5/YOLOv9 检测日期、店名、电话、合计金额区域
 5. **Step 4 — OCR 识别**: PaddleOCR 识别各区域文本，经后处理输出 CSV
-
----
-
-## 效果展示
-
-> *（图片待补充）*
-
-<!--
-![系统整体运行结果](images/overview_result.png)
--->
 
 ---
 

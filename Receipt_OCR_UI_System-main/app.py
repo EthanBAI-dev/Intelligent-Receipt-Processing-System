@@ -125,15 +125,15 @@ def detect_crop_and_rectify(img_pil, model):
 # ====================== 4列展示工具 ======================
 
 def display_4col_row(images, captions, width=280):
-    """用4列展示一组图片"""
+    """用4列展示一组图片：两侧留白居中、列间距紧凑、不铺满全屏"""
     n = min(len(images), 4)
-    cols = st.columns(4)
+    # 6列: [左留白 | 图1 | 图2 | 图3 | 图4 | 右留白], 内容占80%
+    ratios = [1.0] + [2.0] * n + [2.0] * (4 - n) + [1.0]
+    cols = st.columns(ratios, gap="small")
     for i in range(n):
-        with cols[i]:
-            st.image(images[i], caption=captions[i] if i < len(captions) else "", width=width)
-    for i in range(n, 4):
-        with cols[i]:
-            st.markdown("")
+        with cols[i + 1]:
+            if images[i] is not None:
+                st.image(images[i], caption=captions[i] if i < len(captions) else "", width=width)
 
 
 def pad_to_4(items, fill=None):
@@ -144,6 +144,49 @@ def pad_to_4(items, fill=None):
 # ====================== UI ======================
 
 st.set_page_config(layout="wide")
+
+# ====================== 全局 UI 样式 ======================
+st.markdown("""
+<style>
+/* 主标题 */
+h1 { font-size: 2.4rem !important; font-weight: 800 !important; line-height: 1.3 !important; margin-bottom: 0.6rem !important; }
+/* 步骤标题 (st.header) */
+h2 { font-size: 1.55rem !important; font-weight: 700 !important; line-height: 1.4 !important; margin: 1.0rem 0 0.5rem 0 !important; padding-bottom: 0.3rem !important; border-bottom: 2px solid #3a7bd5 !important; }
+/* 子标题 (st.subheader) */
+h3 { font-size: 1.25rem !important; font-weight: 700 !important; line-height: 1.4 !important; margin: 0.8rem 0 0.4rem 0 !important; }
+/* 流程步骤徽章 */
+.step-badge {
+    font-size: 1.5rem !important; font-weight: 800 !important;
+    display: inline-block; padding: 0.5rem 1.0rem;
+    margin: 1.0rem 0 0.5rem 0;
+    background: #b2bec3;
+    color: #2d3436; border-radius: 6px;
+}
+/* 分割子标题 */
+.section-title {
+    font-size: 1.1rem !important; font-weight: 700 !important;
+    margin: 0.8rem 0 0.4rem 0 !important;
+    padding-bottom: 0.25rem !important;
+    border-bottom: 2px solid #dfe6e9 !important;
+}
+/* 信息行 */
+.info-line { font-size: 0.95rem; font-weight: 600; color: #636e72; margin: 0.3rem 0; }
+/* 原始图片说明块 */
+.original-note {
+    font-size: 0.95rem; font-weight: 600; color: #636e72;
+    margin: 0.4rem 0 0.8rem 0;
+}
+/* 4列图片行：紧凑间距 + 图片居中 */
+[data-testid="stHorizontalBlock"] {
+    gap: 0.5rem !important;
+}
+[data-testid="stHorizontalBlock"] img {
+    display: block !important;
+    margin: 0 auto !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Receipt Processing System")
 st.sidebar.title("Function selection")
 functionality = st.sidebar.radio(
@@ -156,6 +199,10 @@ functionality = st.sidebar.radio(
 if functionality == "Full Pipeline":
     st.header("Full Pipeline: Detect -> Classify -> Detect -> OCR")
     st.markdown("Upload a photo with multiple receipts. The system will: crop & rectify -> classify direction -> detect text areas -> OCR")
+    gif_path = os.path.join(BASE_DIR, "receipt detection.gif")
+    if os.path.exists(gif_path):
+        with st.expander("Demo Preview", expanded=False):
+            st.image(gif_path, caption="OCR Pipeline Demo", width=900)
 
     uploaded_files = st.file_uploader("Upload images", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
@@ -163,14 +210,16 @@ if functionality == "Full Pipeline":
         model = load_detect_model(DETECT_MODEL_PATH)
 
         for file_idx, uploaded_file in enumerate(uploaded_files):
-            st.markdown(f'<hr style="border: 2px solid red; margin: 20px 0;">', unsafe_allow_html=True)
+            st.markdown(f'<hr style="border: 5px solid red; margin: 20px 0;">', unsafe_allow_html=True)
             st.subheader(f"File: {uploaded_file.name}")
 
             # ====== [ORIGINAL IMAGE DISPLAY NODE] ======
             img = Image.open(uploaded_file).convert("RGB")
-            st.markdown("**[LOG] Step 0/4: Original Image Display Node**")
-            st.markdown("*This is a composite image containing 4 individual receipts stitched together. The subsequent Split step separates them for individual processing.*")
-            st.image(img, caption=f"[Original Input] {uploaded_file.name}  ({img.width} x {img.height})", use_container_width=True)
+            st.markdown('<p class="step-badge">Step 0/4: Original Image Display</p>', unsafe_allow_html=True)
+            st.markdown('<p class="original-note">This is a composite image containing 4 individual receipts stitched together. The subsequent Split step separates them for individual processing.</p>', unsafe_allow_html=True)
+            img_cols = st.columns([0.3, 3, 0.3], gap="small")
+            with img_cols[1]:
+                st.image(img, caption=f"[Original Input] {uploaded_file.name}  ({img.width} x {img.height})", width=1200)
             # ==============================================
 
             with st.spinner("Step 1/4: Splitting & rectifying receipts..."):
@@ -181,14 +230,15 @@ if functionality == "Full Pipeline":
                 continue
 
             n = len(results)
-            st.markdown(f"Detected **{n}** receipts | Model: YOLOv8-Detect (best_v8_300.pt)")
+            st.markdown(f'<p class="step-badge">Step 1/4: Split & Rectify — Detected {n} receipt(s)</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="info-line">Model: YOLOv8-Detect (best_v8_300.pt)</p>', unsafe_allow_html=True)
 
-            st.markdown("**Cropped**")
+            st.markdown('<p class="section-title">Cropped</p>', unsafe_allow_html=True)
             cropped_imgs = [r['cropped'] for r in results]
             cropped_caps = [f"#{r['index']} Crop" for r in results]
             display_4col_row(pad_to_4(cropped_imgs), pad_to_4(cropped_caps))
 
-            st.markdown("**Rectified**")
+            st.markdown('<p class="section-title">Rectified</p>', unsafe_allow_html=True)
             rect_imgs = [r['rectified'] for r in results]
             rect_caps = [f"#{r['index']} {METHOD_LABELS.get(r['method'], r['method'])}" for r in results]
             display_4col_row(pad_to_4(rect_imgs), pad_to_4(rect_caps))
@@ -199,7 +249,7 @@ if functionality == "Full Pipeline":
                     [r['rectified'] for r in results], model=cls_model, transform=data_transforms
                 )
             label_names = {0: '0 deg (upright)', 1: '90 deg CCW -> corrected', 2: '180 deg -> corrected', 3: '270 deg CCW -> corrected'}
-            st.markdown("**Orientation Correction**")
+            st.markdown('<p class="step-badge">Step 2/4: Orientation Classification</p>', unsafe_allow_html=True)
             corr_imgs = pad_to_4(corrected)
             corr_caps = pad_to_4([f"#{r['index']} [{label_names.get(l, str(l))}]" for r, l in zip(results, labels)])
             display_4col_row(corr_imgs, corr_caps)
@@ -219,7 +269,7 @@ if functionality == "Full Pipeline":
                     st.error(f"Detection failed: {e.stderr}")
                     latest = None
 
-            st.markdown("**Text Area Detection**")
+            st.markdown('<p class="step-badge">Step 3/4: Text Area Detection</p>', unsafe_allow_html=True)
             if latest:
                 det_imgs = []
                 det_caps = []
@@ -251,12 +301,12 @@ if functionality == "Full Pipeline":
                     except subprocess.CalledProcessError as e:
                         st.error(f"OCR failed: {e.stderr}")
 
-            st.markdown("**OCR Results**")
+            st.markdown('<p class="step-badge">Step 4/4: OCR Results</p>', unsafe_allow_html=True)
             csv_files = sorted(glob.glob(os.path.join(BASE_DIR, "ocr_results*.csv")), key=os.path.getmtime)
             if csv_files:
                 ocr_csv = csv_files[-1]
                 df = pd.read_csv(ocr_csv)
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, width='stretch')
                 with open(ocr_csv, "rb") as f:
                     st.download_button("Download CSV", f, os.path.basename(ocr_csv), "text/csv",
                                        key=f"download_csv_{file_idx}")
@@ -286,16 +336,16 @@ elif functionality == "Multi Receipts Detection":
                     st.warning(f"No receipts in {uploaded_file.name}")
                     continue
 
-                st.markdown(f'<hr style="border: 2px solid red; margin: 20px 0;">', unsafe_allow_html=True)
+                st.markdown(f'<hr style="border: 8px solid red; margin: 20px 0;">', unsafe_allow_html=True)
                 st.subheader(f"File: {uploaded_file.name}")
                 st.markdown(f"Detected **{len(results)}** receipts | YOLOv8-Detect (best_v8_300.pt)")
 
-                st.markdown("**Cropped**")
+                st.markdown('<p class="section-title">Cropped</p>', unsafe_allow_html=True)
                 display_4col_row(
                     pad_to_4([r['cropped'] for r in results]),
                     pad_to_4([f"#{r['index']} Crop" for r in results])
                 )
-                st.markdown("**Rectified**")
+                st.markdown('<p class="section-title">Rectified</p>', unsafe_allow_html=True)
                 display_4col_row(
                     pad_to_4([r['rectified'] for r in results]),
                     pad_to_4([f"#{r['index']} {METHOD_LABELS.get(r['method'], r['method'])}" for r in results])
@@ -318,7 +368,7 @@ elif functionality == "Classification":
                 with st.spinner(f"Classifying {uploaded_file.name}..."):
                     corrected, labels = predict_and_correct_images([image], model=cls_model, transform=data_transforms)
                 label_names = {0: '0 deg Upright', 1: '90 deg CCW -> Corrected', 2: '180 deg -> Corrected', 3: '270 deg CCW -> Corrected'}
-                st.markdown(f'<hr style="border: 2px solid red; margin: 20px 0;">', unsafe_allow_html=True)
+                st.markdown(f'<hr style="border: 8px solid red; margin: 20px 0;">', unsafe_allow_html=True)
                 st.subheader(uploaded_file.name)
                 st.image(corrected[0], caption=f"Predicted: {label_names.get(labels[0], labels[0])}", width=400)
 
@@ -366,7 +416,7 @@ elif functionality == "OCR":
                     ocr_csv = csv_files[-1]
                     st.success("Done!")
                     df = pd.read_csv(ocr_csv)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                     with open(ocr_csv, "rb") as f:
                         st.download_button("Download CSV", f, os.path.basename(ocr_csv), "text/csv",
                                            key="download_csv_ocr")

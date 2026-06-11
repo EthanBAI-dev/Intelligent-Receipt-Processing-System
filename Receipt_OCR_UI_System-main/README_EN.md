@@ -5,6 +5,10 @@
 Multi-receipt detection, classification, text-area detection, and OCR recognition pipeline powered by YOLOv8, YOLOv5, ResNet34, and PaddleOCR.
 Built with Streamlit for an intuitive web-based UI.
 
+## Demo
+
+![OCR Pipeline Demo](receipt%20detection.gif)
+
 ---
 
 ## System Architecture
